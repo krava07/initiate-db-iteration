@@ -1,20 +1,4 @@
 <template>
-    <!-- <div class="external-components-wrapper">
-        <div class="email-wrapper">
-            <email :schema="schema"
-                   :label="template.emailLabel"
-                   :placeholder="template.emailPlaceholder"
-                   :$v="$v">
-            </email>
-        </div>
-        <div class="password-wrapper">
-            <password :schema="schema"
-                      :label="template.passwordLabel"
-                      :placeholder="template.passwordPlaceholder"
-                      :$v="$v">
-            </password>
-        </div>
-    </div> -->
     <div>
         <div v-if="!availableTables.length ">
             <p>You don't have any tables to operate with. Please, go to <a :href="schema.uiUrl" target="_blank">Files & Data</a> section and create a table first.</p>

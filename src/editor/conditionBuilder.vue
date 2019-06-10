@@ -85,9 +85,9 @@ export default {
             }
         },
         fields: {
-            type: Array,
+            type: Object,
             default () {
-                return [];
+                return {};
             }
         },
         table: {

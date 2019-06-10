@@ -160,7 +160,7 @@
         name       : 'initiate-db-iteration',
         props      : ['template', 'schema', 'step', 'stepId', 'steps', 'readonly', 'isNew'],
         components : {
-            conditionBuilder
+            'condition-builder': conditionBuilder
         },
 
         data () {

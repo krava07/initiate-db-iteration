@@ -74,7 +74,7 @@
             open
             borderless
         >
-            <!-- <condition-builder
+            <condition-builder
                 v-model="schema.conditions"
                 :table="selectedTable"
                 :steps="steps"
@@ -84,7 +84,7 @@
                 :readonly="readonly"
                 :v="$v.schema.conditions.rulesets.$each"
                 :allowRemoveLast="true">
-            </condition-builder> -->
+            </condition-builder>
         </or-collapsible>
         <or-collapsible
             title="Iteration and output"

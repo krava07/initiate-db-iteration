@@ -172,7 +172,7 @@
         created () {},
         mounted() {
             console.log('this', this);
-            console.log('NEW 11 VERSION!!!!')
+            console.log('NEW 22 VERSION!!!!')
             // const currentEndpoint = `${this.$flow.customDataApiUrl}/api/`;
             const currentEndpoint = `https://tablesapi-qa.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
             if (this.schema.endpoint !== currentEndpoint) {

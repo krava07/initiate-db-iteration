@@ -1,0 +1,21 @@
+# Logs
+logs
+*.log
+npm-debug.log
+
+/node_modules
+
+# IDEA
+**/.idea/workspace.xml
+**/.idea/misc.xml
+**/.idea/tasks.xml
+**/.idea/dictionaries
+**/.idea/inspectionProfiles/
+**/.idea/encodings.xml
+**/.idea/markdown-navigator/
+**/.idea/markdown-navigator.xml
+**/.idea/markdown-exported-files.xml
+
+#OS
+.DS_Store
+.tmp

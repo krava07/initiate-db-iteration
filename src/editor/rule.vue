@@ -93,8 +93,8 @@ export default {
         
         return {
             fieldsSelectKeys: {
-            label: "Label",
-            value: "Name"
+                label: 'Label',
+                value: 'Name'
             },
             fieldError: false,
             fieldsWithMerge: [...this.expressionizeFields(this.fields)],
@@ -120,7 +120,7 @@ export default {
                 this.fieldsWithMerge = [...this.fieldsComputed];
             }
         }
-        },
+    },
     computed: {
         fieldsComputed () {
             return this.expressionizeFields(this.fields);

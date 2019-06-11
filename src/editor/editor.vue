@@ -132,9 +132,9 @@
     </div>
 </template>
 <script>
-    import * as _ from 'lodash';
+    // import * as _ from 'lodash';
     import {validators} from '_validators';
-    import conditionBuilder from './conditionBuilder.vue';
+    import ConditionBuilder from './conditionBuilder.vue';
     // import email from './email.vue';
     // import password from './password.vue';
 
@@ -144,7 +144,7 @@
         name       : 'initiate-db-iteration',
         props      : ['template', 'schema', 'step', 'stepId', 'steps', 'readonly', 'isNew'],
         components : {
-            'condition-builder': conditionBuilder
+            'condition-builder': ConditionBuilder
         },
 
         data () {
@@ -172,7 +172,7 @@
         created () {},
         mounted() {
             console.log('this', this);
-            // console.log('NEW 22 VERSION!!!!')
+            console.log('NEW VERSION!!!!')
             // const currentEndpoint = `${this.$flow.customDataApiUrl}/api/`;
             const currentEndpoint = `https://tablesapi-qa.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
             if (this.schema.endpoint !== currentEndpoint) {

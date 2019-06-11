@@ -202,7 +202,7 @@
                 get () {
                     return _.isNil(this.schema.outputExample) ? JSON.stringify(this.step.outputExample, null, 2) : this.schema.outputExample;
                 },
-                set () {
+                set (newValue) {
                     try {
                         const parsedValue = new Function(`return ${newValue};`)();
                         // this.$emit('update:outputExample', parsedValue);
@@ -550,12 +550,22 @@
 
     export const toJSON = ({schema, inputData, context}) => {
         return ({
-            // fooInput    : schema.fooInput,
-            // booInput    : schema.booInput,
-            // hasBooInput : schema.hasBooInput
-            table: schema.table
+        // [inputData.variableName]: JSON.stringify(schema[inputData.variableName])
+        initiateDBIterationStep: JSON.stringify(schema.initiateDBIterationStep),
+        isOneByOne: JSON.stringify(schema.isOneByOne),
+        // fields: {}, // ?
+        authToken: JSON.stringify(schema.authToken),
+        endpoint: JSON.stringify(schema.endpoint),
+        uiUrl: JSON.stringify(schema.uiUrl),
+        table: schema.table,
+        query: JSON.stringify(schema.query),
+        limit: schema.limit,
+        skip: schema.skip,
+        sortDirection: JSON.stringify(schema.sortDirection),
+        sortField: schema.sortField,
+        // queryObject: true,
         })
-    }
+    };
 
     export const validator = (template) => {
         return {

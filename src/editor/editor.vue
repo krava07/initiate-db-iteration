@@ -631,12 +631,11 @@
 
 <style scoped lang="scss" rel="stylesheet/scss">
     @import '../scss/colors.scss';
-
+    @import '../scss/main.scss';
 </style>
 
 
 <style lang="scss" rel="stylesheet/scss">
     @import '../scss/colors.scss';
-    @import '../scss/main.scss';
 
 </style>

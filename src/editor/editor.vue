@@ -141,7 +141,7 @@
     const {required, jsExpressionNonEmptyString, generateValidators} = validators;
 
     export default {
-        name       : 'initiate-db-iteration',
+        name       : 'editor',
         props      : ['template', 'schema', 'step', 'stepId', 'steps', 'readonly', 'isNew'],
         components : {
             'condition-builder': ConditionBuilder

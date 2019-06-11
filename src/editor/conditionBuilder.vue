@@ -47,19 +47,19 @@
                         <div v-if="v[index].$error && v[index].hasIndexed && v[index].hasNoRepeatitions" class="error">The query cannot contain rules with empty operations.</div>
                     </template>
                     <or-code
-                    v-else
-                    class="code-ruleset"
-                    v-model="ruleset.code"
-                    @input="(value) => onRulesetInput(ruleset, value)"
-                    :readonly="readonly"
-                    :steps="steps"
-                    :step-id="stepId"
-                    label=""
+                        v-else
+                        class="code-ruleset"
+                        v-model="ruleset.code"
+                        @input="(value) => onRulesetInput(ruleset, value)"
+                        :readonly="readonly"
+                        :steps="steps"
+                        :step-id="stepId"
+                        label=""
                     ></or-code>
                 </li>
                 <div :key="index" v-if="index !== value.rulesets.length - 1" class="separator">
                     <div>
-                        <span>or<span>
+                        <span>or</span>
                     </div>
                 </div>
             </template>

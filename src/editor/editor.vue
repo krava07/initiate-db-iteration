@@ -67,8 +67,8 @@
                 :query.sync="schema.query"
                 :readonly="readonly"
                 :v="$v.schema.conditions.rulesets.$each"
-                :allowRemoveLast="true">
-            </condition-builder>
+                :allowRemoveLast="true"
+            />
         </or-collapsible>
         <or-collapsible
             title="Iteration and output"

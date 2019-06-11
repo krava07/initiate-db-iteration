@@ -68,7 +68,7 @@
                 :readonly="readonly"
                 :v="$v.schema.conditions.rulesets.$each"
                 :allowRemoveLast="true"
-            />
+            ></condition-builder>
         </or-collapsible>
         <or-collapsible
             title="Iteration and output"

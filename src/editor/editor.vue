@@ -613,7 +613,7 @@
                                     }
                                     const fieldName = rule.field.slice(1, -1);
                                     const isMergeField = fieldName.includes('this.get');
-                                    const fieldObj = this.schema.fields.find(field => field.Name === fieldName);
+                                    const fieldObj = this.schema.tableFields.find(field => field.name === fieldName);
                                     if (!isMergeField && fieldObj && 
                                         (
                                             (fieldObj.DataType === 'Number' && ['contains', 'not contain', 'begins with'].includes(rule.operation)) ||

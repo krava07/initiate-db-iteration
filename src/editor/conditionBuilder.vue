@@ -73,7 +73,7 @@
 import rule from './rule.vue';
 
 export default {
-    name: 'condition-builder',
+    // name: 'condition-builder',
     components: {
         rule
     },

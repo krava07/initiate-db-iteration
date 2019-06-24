@@ -19,7 +19,7 @@
                                 </svg>
                             </div>
                         </or-icon-button>
-                        <or-icon-button title="Delete" type="secondary" class="grey medium" icon="delete_forever" @click="onRemoveRuleset(ruleset)" :disabled="(value.rulesets.length < 2 && !allowRemoveLast) || readonly"></or-icon-button>
+                        <or-icon-button title="Delete" type="secondary" class="grey medium" icon="delete_forever" @click="onRemoveRuleset(ruleset)" :disabled="isDeleteDisabled"></or-icon-button>
                     </div>
                     </div>
                     <template v-if="ruleset.mode === 'select'">
@@ -69,8 +69,9 @@
 </template>
 
 <script>
-// import * as _ from 'lodash';
 import rule from './rule.vue';
+import uuid from 'uuid';
+import {validators} from '_validators';
 
 export default {
     // name: 'condition-builder',
@@ -159,20 +160,24 @@ export default {
             // }]
         };
     },
+    computed: {
+        isDeleteDisabled () {
+            return (this.value.rulesets.length < 2 && !this.allowRemoveLast) || this.readonly;
+        }
+    },
     watch: {
         value: {
-            handler() {
-                const orExpressionsList = this.value.rulesets.map(this.rulesetToCode).filter(rs => !!rs);
-
-                // this.$emit('update:query', `{ $or: [${orExpressions}] }`);
+            handler(value) {
+                const orExpressionsList = value.rulesets.map(this.rulesetToCode).filter(rs => !!rs);
 
                 let query = '';
                 if (orExpressionsList.length > 1) {
                     query = '(' + orExpressionsList.join(') OR (') + ')'
+                } else {
+                    query = orExpressionsList[0] || '';
                 }
-
+                // query = JSON.stringify(query);
                 const fullQuery = '{ query_string: { query:' + '`' + query + '`' + '} }';
-                console.log('query:', fullQuery)
                 this.$emit('update:query', fullQuery);
             },
             deep: true
@@ -181,7 +186,7 @@ export default {
     methods: {
         getEmptyRule() {
             return {
-                id: libs.uuid.v4(),
+                id: uuid.v4(),
                 field: '',
                 operation: '=',
                 expression: '``',
@@ -230,40 +235,6 @@ export default {
                 ruleset.dirty = this.rulesetToCode(ruleset, 'select') !== value;
             }
         },
-        // oldChangeRule (rule) {
-        //   const { operation, expression } = rule;
-        //   if (!operation || !expression) {
-        //     return '';
-        //   }
-
-        //   const operationDescriptor = _.find(this.operations, { value: operation });
-        //   const toMatch = field.match(/(^`(.*)`$)|(^'(.*)'$)|(^"(.*)"$)/i).filter(e => !!e);
-        //   const entry = toMatch[toMatch.length - 1];
-        //   const fieldData = _.find(this.fields, { Name: entry });
-
-        //   let parsedExpression = '';
-        //   if (fieldData) {
-        //     switch (fieldData.DataType) {
-        //       case 'Number':
-        //         parsedExpression = `parseFloat(${expression})`;
-        //         break;
-        //       case 'Boolean':
-        //         parsedExpression = `${expression} === 'true'`;
-        //         break;
-        //       case 'String':
-        //         parsedExpression = expression;
-        //         break;
-        //       default:
-        //         parsedExpression = expression;
-        //     }
-        //   } else {
-        //     parsedExpression = expression;
-        //   }
-
-        //   return operationDescriptor.complex ?
-        //     operationDescriptor.getRule(parsedExpression) :
-        //     `${operationDescriptor.value}: ${parsedExpression}`;
-        // },
         changeRule(fieldName, operator, value) {
             fieldName = fieldName.slice(1, -1);
             value = value.slice(1, -1);
@@ -272,6 +243,7 @@ export default {
             if (['!=', '='].includes(operator)) operator = '';
             if (type === 'keyword') {
                 value = `"${value}"`;
+                // value = JSON.stringify(value); 
             }
             let rule = `${fieldName} : ${operator}${value}`;
             if (notEquals) {
@@ -322,10 +294,6 @@ export default {
                 ..._.map(codeModeRules, rule => this.ruleToCode([rule]))
             ].filter(rule => !!rule).join(' AND ');
 
-            // if (rulesFields) {
-            //   return `{\n${rulesFields}\n}`;
-            // }
-
             return rulesFields || '';
         },
         onRemoveRule(ruleset, rule) {
@@ -343,3 +311,234 @@ export default {
     }
 }
 </script>
+
+<style lang="scss">
+.external-component-wrap {
+    .inline-input {
+        margin-bottom: 0;
+
+        .ui-textbox__input {
+            border: none;
+            background-color: transparent;
+            font-size: 14px;
+            font-weight: bold;
+            color: #0F232E;
+            padding: 10px 18px 10px 0;
+            margin-bottom: 9px;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            &:focus,
+            &:hover {
+                background-color: transparent;
+            }
+        }
+    }
+    
+
+    %inline-select {
+        .ui-select__display {
+            border: none;
+            background-color: transparent;
+        }
+    }
+
+    .hide-controls {
+        position: relative;
+
+        .header {
+            height: 0;
+            min-height: 0;
+
+            .js-mode-btn {
+                display: none;
+            }
+
+            .add-variable {
+                position: absolute;
+                right: 0;
+                // top: 36px;
+                z-index: 1;
+            }
+
+            .full-screen {
+                position: absolute;
+                right: 0;
+                bottom: 0;
+                z-index: 1;
+            }
+        }
+    }
+
+    %or-filter-wrapper {
+        background-color: #F6F6F6;
+        padding: 6px 16px 16px 16px;
+        border-radius: 3px;
+        border-left: 3px solid #7ED321;
+
+        &.invalid {
+            border-left: 3px solid #F95D5D;
+        }
+    }
+
+    %or-filter-item {
+        position: relative;
+        padding: 10px;
+        border-radius: 3px;
+        background-color: #FFF;
+        align-items: stretch;
+    }
+
+    .ruleset-list {
+        .separator {
+            height: 61px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+
+            &>div {
+                width: 27px;
+                height: 27px;
+                transform: rotate(45deg);
+                display: flex;
+                background-color: #7ED321;
+                justify-content: space-around;
+                align-items: center;
+
+                &>span {
+                    font-size: 12px;
+                    line-height: 14px;
+                    transform: rotate(-45deg);
+                    text-transform: uppercase;
+                    color: #FFF;
+                }
+            }
+        }
+
+        .ruleset-item {
+            @extend %or-filter-wrapper;
+
+            .ruleset {
+                .rule {
+                    @extend %or-filter-item;
+                    padding: 7px;
+
+                    .popover-trigger {
+                        width: 10px;
+
+                        .ui-icon {
+                            position: relative;
+                            left: -3px;
+                        }
+                    }
+
+                    .field {
+                        width: 0;
+
+                        .ui-select__display {
+                            height: 38px;
+                            border-radius: 3px 0 0 3px;
+                            padding-right: 5px;
+
+                            .ui-icon.ui-select__dropdown-button {
+                                width: 0.5em;
+
+                                svg {
+                                    position: relative;
+                                    left: -0.25em;
+                                }
+                            }
+                        }
+
+                        .ui-select__content {
+                            width: 0;
+                        }
+
+                        &.is-disabled {
+                            .ui-icon.ui-select__dropdown-button {
+                                display: none;
+                            }
+                        }
+                    }
+
+                    .operation {
+                        &.error {
+                            .ui-select__display-value {
+                                color: #f95d5d;
+                            }
+                        }
+
+                        min-width: 80px;
+                        flex: 0.5;
+
+                        .ui-select__dropdown {
+                            min-width: auto;
+
+                            .ui-select-option__basic {
+                                font-size: 12px;
+                            }
+                        }
+
+                        @extend %inline-select;
+
+                        .ui-select__content {
+                            width: 100%;
+
+                            .ui-select__display {
+                                padding-left: 7px;
+                                padding-right: 7px;
+
+                                .ui-select__display-value {
+                                    text-align: center;
+                                    font-size: 12px;
+
+                                }
+
+                                .ui-icon.ui-select__dropdown-button {
+                                    width: 0.5em;
+
+                                    svg {
+                                        position: relative;
+                                        left: -0.25em;
+                                    }
+                                }
+                            }
+                        }
+
+                        &.is-disabled {
+                            .ui-icon.ui-select__dropdown-button {
+                                display: none;
+                            }
+                        }
+                    }
+
+                    .expression {
+                        .or-editable-wrapper {
+                            border-radius: 0 3px 3px 0;
+                        }
+
+                        width: 0;
+
+                        .editable {
+                            text-overflow: ellipsis;
+                            padding-right: 30px;
+                        }
+
+                        &.readonly {
+                            .editable {
+                                padding-right: 10px;
+                            }
+                        }
+                    }
+
+                    &+.rule {
+                        margin-top: 9px;
+                    }
+                }
+            }
+        }
+    }
+}
+</style>

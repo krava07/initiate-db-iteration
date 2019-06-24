@@ -15,7 +15,7 @@
             <or-select
                 :options="operationsComputed"
                 v-model="rule.operation"
-                :class="['operation', 'no-margin', { error: !v.opearation }]"
+                :class="['operation', 'no-margin', { error: !v.operation }]"
                 placeholder="operator"
                 :disabled="readonly"
             ></or-select>
@@ -83,7 +83,7 @@ export default {
         operations: {},
         readonly: {},
         fields: {},
-        table: {},
+        // table: {},
         ruleset: {},
         v: {}
     },
@@ -112,7 +112,6 @@ export default {
         }
     },
     watch: {
-        // table (newVal, oldVal) {
         fieldsComputed () {
             if (/^(`\$\{this.get\('.*'\)\}`)$/.test(this.rule.field)) {
                 this.fieldsWithMerge = [_.find(this.fieldsWithMerge, ['Name', this.rule.field]), ...this.fieldsComputed];
@@ -131,18 +130,9 @@ export default {
             },
             set (value) {
                 const fieldData = _.find(this.fieldsWithMerge, { Name: value });
-                let operationsSet = [];
-                if (fieldData) {
-                    switch (fieldData.DataType) {
-                        case 'boolean':
-                            operationsSet = [...this.defaultOperators];
-                        // case 'date':
-                        // case 'double':
-                        // case 'long':
-                            break;
-                        default:
-                            operationsSet = [...this.extraOperations];
-                    }
+                let operationsSet = this.extraOperations;
+                if (fieldData && fieldData.DataType === 'boolean') {
+                    operationsSet = this.defaultOperators;
                 }
                 if (!_.includes(operationsSet, this.rule.operation)) {
                     this.rule.operation = '';
@@ -160,14 +150,14 @@ export default {
 
                 if (fieldData) {
                     switch (fieldData.DataType) {
-                    case 'boolean':
-                        return _.includes(this.defaultOperators, operation.value);
-                    // case 'date':
-                    // case 'double':
-                    // case 'long':
-                        return _.includes(this.extraOperations, operation.value);
-                    default:
-                        return _.includes(this.extraOperations, operation.value);
+                        case 'boolean':
+                            return _.includes(this.defaultOperators, operation.value);
+                        // case 'date':
+                        // case 'double':
+                        // case 'long':
+                            // return _.includes(this.extraOperations, operation.value);
+                        default:
+                            return _.includes(this.extraOperations, operation.value);
                     }
                 }
                 return true;

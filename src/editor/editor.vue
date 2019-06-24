@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="external-component-wrap">
         <div v-if="!availableTables.length ">
             <p>You don't have any tables to operate with. Please, go to <a :href="schema.uiUrl" target="_blank">Files & Data</a> section and create a table first.</p>
         </div>
@@ -29,16 +29,14 @@
         </or-select-expression>
         <or-modal ref="fields-modal" title="Table Fields" type="medium">
             <div slot="default" v-if="tableFields.length">
-                <p style="color:#B1B1B1">Here you can find field labels with the corresponding JSON label and field data type.</p>
+                <p style="color:#B1B1B1">Here you can find field names and data types.</p>
                 <div class="table-fields">
                     <div class="table-row table-row--head">
-                        <div class="table-row__label">Field label</div>
-                        <!--<div class="table-row__name">JSON label</div>-->
+                        <div class="table-row__name">Field name</div>
                         <div class="table-row__type">Data type</div>
                     </div>
                     <div v-for="item in tableFields" :key="item.name" class="table-row">
-                        <div class="table-row__label">{{ item.name }}</div>
-                        <!--<div class="table-row__name">{{ item.Name }}</div>-->
+                        <div class="table-row__name">{{ item.name }}</div>
                         <div class="table-row__type">{{ item.type || 'unknown data type' }}</div>
                     </div>
                 </div>
@@ -58,13 +56,13 @@
             open
             borderless
         >
+            <!-- :table="selectedTable" -->
             <condition-builder
-                v-model="schema.conditions"
-                :table="selectedTable"
+                v-model="conditions"
                 :steps="steps"
                 :step-id="stepId"
                 :fields="fields"
-                :query.sync="schema.query"
+                :query.sync="query"
                 :readonly="readonly"
                 :v="$v.schema.conditions.rulesets.$each"
                 :allowRemoveLast="true"
@@ -76,15 +74,15 @@
             borderless
         >
             <or-tabs class="flex-box" fullwidth @tab-change="onTabChange" ref="tabs">
-                <or-tab title="One by one" id="one-by-one"></or-tab>
-                <or-tab title="Simultaneously" id="simultaneously"></or-tab>
+                <or-tab title="One by one" id="one-by-one" :disabled="readonly" ></or-tab>
+                <or-tab title="Simultaneously" id="simultaneously" :disabled="readonly"></or-tab>
             </or-tabs>
             <div class="display-flex">
                 <or-text-expression
                     label="Records per page"
                     help-text="Default value: 30"
                     placeholder="Enter a number"
-                    v-model="schema.limit"
+                    v-model="limit"
                     class="no-margin m-r-m flex-1 width-0"
                     :steps="steps"
                     :step-id="stepId"
@@ -133,26 +131,31 @@
 </template>
 <script>
     // import * as _ from 'lodash';
-    import {validators} from '_validators';
+    import {
+        validators
+    } from '_validators';
     import ConditionBuilder from './conditionBuilder.vue';
-    // import email from './email.vue';
-    // import password from './password.vue';
+    import uuid from 'uuid';
 
-    const {required, jsExpressionNonEmptyString, generateValidators} = validators;
+    const {
+        required,
+        jsExpressionNonEmptyString,
+        generateValidators
+    } = validators;
 
     export default {
-        name       : 'editor',
-        props      : ['template', 'schema', 'step', 'stepId', 'steps', 'readonly', 'isNew'],
-        components : {
+        name: 'editor',
+        props: ['template', 'schema', 'step', 'stepId', 'steps', 'readonly', 'isNew'],
+        components: {
             'condition-builder': ConditionBuilder
         },
 
-        data () {
+        data() {
             return {
                 respTables: [], // backup list to avoid update from or-select
                 availableTables: [],
                 newTable: null,
-                selectedTable: {},
+                // selectedTable: {},
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: ''
@@ -165,15 +168,14 @@
                     label: '<< No field selected >>',
                     value: ''
                 }],
-                fields: {}
+                // fields: {}
             };
         },
 
-        created () {},
+        created() {},
         mounted() {
-            console.log('this', this);
-            console.log('NEW!!!!')
-            // const currentEndpoint = `${this.$flow.customDataApiUrl}/api/`;
+            // console.log('this', this);
+            // console.log('NEW!!!!')
             const currentEndpoint = `https://tablesapi-qa.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
             if (this.schema.endpoint !== currentEndpoint) {
                 this.schema.endpoint = currentEndpoint;
@@ -182,12 +184,12 @@
             if (this.schema.uiUrl !== uiUrl) {
                 this.schema.uiUrl = uiUrl;
             }
-            
+
             const activeTab = this.isOneByOne ? 'one-by-one' : 'simultaneously';
             this.$nextTick(() => {
                 this.$refs.tabs.setActiveTab(activeTab);
             });
-            
+
             if (this.$store && this.$store.state && this.$store.state.auth && this.$store.state.auth.token) {
                 this.headers.Authorization = this.$settings.token;
                 this.schema.authToken = this.$settings.token;
@@ -197,37 +199,48 @@
             }
         },
 
-        computed   : {
+        computed: {
             outputExample: {
-                get () {
+                get() {
                     return _.isNil(this.schema.outputExample) ? JSON.stringify(this.step.outputExample, null, 2) : this.schema.outputExample;
                 },
-                set (newValue) {
+                set(newValue) {
                     try {
                         const parsedValue = new Function(`return ${newValue};`)();
-                        // this.$emit('update:outputExample', parsedValue);
                         this.step.outputExample = parsedValue;
                     } catch (e) {}
                     this.schema.outputExample = newValue;
                 }
             },
-            tableFields () {
+            fields: {
+                get() {
+                    return this.schema.fields;
+                },
+                set(value) {
+                    this.$set(this.schema, 'fields', value);
+                }
+            },
+            tableFields() {
                 return _.map(this.fields, (value, key) => ({
                     name: key,
                     type: value.type
                 }));
             },
-            sortTableFields () {
-                return this.tableFields.map(field => ({ label: field.name, value: '`' + field.name + '`' }));
+            sortTableFields() {
+                return this.tableFields.map(field => ({
+                    label: field.name,
+                    value: '`' + field.name + '`'
+                }));
             },
-            outputExampleIsDirty () {
+            outputExampleIsDirty() {
                 return this.output !== this.getDefaultOutputExample();
             },
             selectedTableModel: {
-                get () {
+                get() {
                     return this.schema.table;
                 },
-                set (newValue) {
+                set(newValue) {
+                    newValue = newValue || '``';
                     if (this.schema.table && this.schema.table !== newValue) {
                         if (this.isDirty()) {
                             this.newTable = newValue;
@@ -235,46 +248,74 @@
                         } else {
                             this.resetSchema();
                             this.schema.table = newValue;
-                            this.selectedTable = _.find(this.availableTables, { Id: this.schema.table });
+                            // this.selectedTable = _.find(this.availableTables, {
+                            //     Id: this.schema.table
+                            // });
                         }
                     } else {
                         this.schema.table = newValue;
-                        this.selectedTable = _.find(this.availableTables, { Id: this.schema.table });
+                        // this.selectedTable = _.find(this.availableTables, {
+                        //     Id: this.schema.table
+                        // });
                     }
                 }
             },
             sortField: {
-                get () {
+                get() {
                     return this.schema.sortField;
                 },
-                set (newValue) {
-                    this.schema.sortField = newValue;
+                set(value) {
+                    this.$set(this.schema, 'sortField', value);
                 }
             },
             sortDirection: {
-                get () {
+                get() {
                     return this.schema.sortDirection;
                 },
-                set (newValue) {
-                    this.schema.sortDirection = newValue;
+                set(value) {
+                    this.$set(this.schema, 'sortDirection', value);
                 }
             },
-            isMergeField () {
+            isMergeField() {
                 return this.selectedTableModel.includes('this.get');
             },
-                
+
             isOneByOne: {
-                get () {
+                get() {
                     return this.schema.isOneByOne;
                 },
-                set (value) {
-                    this.schema.isOneByOne = value;
+                set(value) {
+                    this.$set(this.schema, 'isOneByOne', value);
+                }
+            },
+            query: {
+                get() {
+                    return this.schema.query;
+                },
+                set(value) {
+                    this.$set(this.schema, 'query', value);
+                }
+            },
+            limit: {
+                get() {
+                    return this.schema.limit;
+                },
+                set(value) {
+                    this.$set(this.schema, 'limit', value);
+                }
+            },
+            conditions: {
+                get() {
+                    return this.schema.conditions;
+                },
+                set(value) {
+                    this.$set(this.schema, 'conditions', value);
                 }
             }
         },
 
         watch: {
-            selectedTableModel (newValue, oldValue) {
+            selectedTableModel(newValue, oldValue) {
                 this.getTableFields().then(() => {
                     if (/^(`\$\{this.get\('.*'\)\}`)$/.test(this.sortField)) {
                         this.fieldsForSort = [{
@@ -289,45 +330,56 @@
                     }
                     this.refillOutputExample()
                 });
-                
-                // if (this.isMergeField) {
-                //     this.model.tableExists = true;
-                // } else {
-                //     this.model.tableExists = _.some(this.respTables, { Id: this.model.table });
-                // }
+
+                if (this.isMergeField) {
+                    this.schema.tableExists = true;
+                } else {
+                    this.schema.tableExists = _.some(this.respTables, {
+                        Id: this.selectedTableModel
+                    });
+                }
+            },
+            availableTables() {
+                if (this.isMergeField) {
+                    this.schema.tableExists = true;
+                } else {
+                    this.schema.tableExists = _.some(this.respTables, {
+                        Id: this.selectedTableModel
+                    });
+                }
             },
             isOneByOne: 'refillOutputExample'
         },
 
-        methods : {
-            onTabChange (tabId) {
+        methods: {
+            onTabChange(tabId) {
                 if (tabId === 'one-by-one') {
                     this.isOneByOne = true;
                 } else if (tabId === 'simultaneously') {
                     this.isOneByOne = false;
                 }
             },
-            resetSchema () {
+            resetSchema() {
                 this.schema.conditions = {
                     rulesets: [{
-                    title: 'New filter',
-                    rules: [{
-                        id: libs.uuid.v4(),
-                        field: '',
-                        operation: '$eq',
-                        expression: '``',
+                        title: 'New filter',
+                        rules: [{
+                            id: uuid.v4(),
+                            field: '',
+                            operation: '=',
+                            expression: '``',
+                            mode: 'select',
+                            code: '',
+                            dirty: false
+                        }],
                         mode: 'select',
                         code: '',
                         dirty: false
-                    }],
-                    mode: 'select',
-                    code: '',
-                    dirty: false
                     }]
                 };
-                
+
                 this.schema.fields = {};
-                this.schema.query = '';
+                this.schema.query = '{ query_string: { query:``} }';
                 this.schema.queryObject = true;
                 this.schema.outputExample = '';
                 this.schema.limit = '`30`';
@@ -335,58 +387,63 @@
                 this.sortField = '``';
                 this.sortDirection = '+';
             },
-            isDirty () {
+            isDirty() {
                 try {
-                    // return !_.isEmpty(eval(`(${this.model.query})`).$or);
                     return !_.isEmpty(eval(`(${this.schema.query})`).query_string.query);
                 } catch (e) {
                     return true;
                 }
             },
-            discardChangeTable () {
+            discardChangeTable() {
                 this.$refs['table-modal'].close();
                 this.newTable = null;
             },
-            confirmChangeTable () {
+            confirmChangeTable() {
                 this.$refs['table-modal'].close();
-                this.selectedTableModel = this.newTable;
-                this.selectedTable = _.find(this.availableTables, { Id: this.selectedTableModel });
+                this.schema.table = this.newTable;
+                // this.selectedTable = _.find(this.availableTables, {
+                //     Id: this.selectedTableModel
+                // });
                 this.resetSchema();
                 this.newTable = null;
             },
-            getTables () {
+            getTables() {
                 return this.$http.get(`${this.schema.endpoint}indexes-statistics`, {
                     headers: this.headers
                 }).then(dataResponse => {
                     if (dataResponse.data && dataResponse.data.indices) {
                         const respTables = Object.keys(dataResponse.data.indices)
                             .map(table => ({
-                            Label: table,
-                            Id: '`' + table + '`'
+                                Label: table,
+                                Id: '`' + table + '`'
                             }));
                         const availableTables = [{
                             Label: "<< No table selected >>",
                             Id: '``'
                         }].concat(respTables);
                         this.respTables = availableTables;
-                        const selectedTable = _.find(this.availableTables, { Id: this.selectedTableModel });
+                        const selectedTable = _.find(this.availableTables, {
+                            Id: this.selectedTableModel
+                        });
                         if (this.isMergeField && selectedTable) {
                             this.availableTables = availableTables.concat(selectedTable);
                         } else {
                             this.availableTables = availableTables;
                         }
-                        this.selectedTable = _.find(this.availableTables, { Id: this.selectedTableModel });
+                        // this.selectedTable = _.find(this.availableTables, {
+                        //     Id: this.selectedTableModel
+                        // });
                     }
                 }, (jq, status, error) => {
                     console.error(`CustomData Tables Fail: ${status}`, jq);
                     if (jq && jq.status == 403) {
                         this.availableTables = [];
-                        this.selectedTable = null;
+                        // this.selectedTable = null;
                     }
                 });
             },
-            getTableFields () {
-                const table =  this.selectedTableModel.slice(1, -1);
+            getTableFields() {
+                const table = this.selectedTableModel.slice(1, -1);
                 if (!table || this.isMergeField) {
                     this.fields = {};
                     return Promise.resolve();
@@ -404,19 +461,16 @@
                     this.fields = resp.data;
                 });
             },
-            toggleSort () {
+            toggleSort() {
                 this.sortDirection = this.sortDirection === '+' ? '-' : '+';
             },
-            groupOutputFields (fields, depth) {
+            groupOutputFields(fields, depth) {
                 if (fields.length === 1 && !fields[0].path.length) {
                     switch (fields[0].type) {
-                        case 'String':
                         case 'keyword':
                             return '"some string"';
-                        case 'Number':
                         case 'long':
                             return '123';
-                        case 'Boolean':
                         case 'boolean':
                             return 'true';
                         default:
@@ -430,43 +484,65 @@
                     .toPairs()
                     .map(([parent, group]) => {
                         const arrayField = _.find(group, fd => fd.type === 'Array' && fd.path.length === 1);
-                        const subArrayFields =_.reject(group, fd => fd.type === 'Array' && fd.path.length === 1);
-                        const fieldsToGroup = arrayField && arrayField.arrayType !== 'Object' ?
-                            [{ type: arrayField.arrayType, path: [] }] :
+                        const subArrayFields = _.reject(group, fd => fd.type === 'Array' && fd.path.length === 1);
+                        const fieldsToGroup = arrayField && arrayField.arrayType !== 'Object' ? [{
+                                type: arrayField.arrayType,
+                                path: []
+                            }] :
                             _.map(subArrayFields, fd => ({
                                 path: fd.path.slice(1),
                                 type: fd.type,
                                 arrayType: fd.arrayType
                             }));
 
-                        const subObject = groupFields(fieldsToGroup, depth + 1);
+                        const subObject = this.groupOutputFields(fieldsToGroup, depth + 1);
                         if (arrayField) {
-                        return `${spaces}  "${parent}": [${subObject}]`
+                            return `${spaces}  "${parent}": [${subObject}]`
                         }
                         return `${spaces}  "${parent}": ${subObject}`;
                     })
                     .join(',\n')
                     .value();
-                
+
                 return `{\n${jsonFields}\n${spaces}}`;
             },
-            getDefaultOutputExample () {
-                let basicFields = [
-                    { path: ['_id'], type: 'String' },
-                    { path: ['_index'], type: 'String' },
-                    { path: ['_score'], type: 'Number' },
-                    { path: ['_type'], type: 'String' }
+            getDefaultOutputExample() {
+                let basicFields = [{
+                        path: ['_id'],
+                        type: 'String'
+                    },
+                    {
+                        path: ['_index'],
+                        type: 'String'
+                    },
+                    {
+                        path: ['_score'],
+                        type: 'Number'
+                    },
+                    {
+                        path: ['_type'],
+                        type: 'String'
+                    }
                 ];
-                
+
                 if (!this.isOneByOne) {
                     basicFields = basicFields.map(fieldConf => {
                         fieldConf.path.unshift('hits');
                         return fieldConf;
                     });
-                    basicFields = [
-                        {path: ['total'], type: 'Number'},
-                        {path: ['max_score'], type: 'Number'},
-                        {path: ['hits'], type: 'Array', arrayType: 'Object'}
+                    basicFields = [{
+                            path: ['total'],
+                            type: 'Number'
+                        },
+                        {
+                            path: ['max_score'],
+                            type: 'Number'
+                        },
+                        {
+                            path: ['hits'],
+                            type: 'Array',
+                            arrayType: 'Object'
+                        }
                     ].concat(basicFields);
                 }
                 if (this.selectedTableModel !== '``') {
@@ -482,26 +558,20 @@
                     return '';
                 }
             },
-            refillOutputExample () {
+            refillOutputExample() {
                 this.outputExample = this.getDefaultOutputExample();
             }
         },
 
-        validations () {
+        validations() {
             return {
-                schema : validator(this.template)
+                schema: validator(this.template)
             };
         }
 
     };
 
     export const data = (template) => ({
-        // email               : '',
-        // emailPlaceholder    : template.emailPlaceholder,
-        // emailLabel          : template.emailLabel,
-        // password            : '',
-        // passwordPlaceholder : template.passwordPlaceholder,
-        // passwordLabel       : template.passwordLabel,
         initiateDBIterationStep: true,
         isOneByOne: true,
         fields: {}, // ?
@@ -509,14 +579,15 @@
         endpoint: '',
         uiUrl: '',
         table: '``',
-        query: '',
+        tableExists: true,
+        query: '{ query_string: { query:``} }',
         conditions: {
             rulesets: [{
                 title: 'new rule',
                 rules: [{
                     id: 'initial',
                     field: '``',
-                    operation: '$eq',
+                    operation: '=',
                     expression: '``',
                     mode: 'select',
                     code: '',
@@ -535,89 +606,84 @@
         outputExample: ''
     });
 
-    // export const toJson = (data, key) => {
-    //     if (['table', 'limit', 'sortField'].includes(key)) {
-    //         return data;
-    //     }
-    //     if (_.isArray(data)) { 
-    //         return `[${_.map(data, toJson).join(',')}]`;
-    //     }
-    //     if (_.isObject(data)) {
-    //         return `{${_.map(data, (value, key) => `${key}: ${toJson(value, key)}`).join(',')}}`;
-    //     }
-    //     return JSON.stringify(data);
-    // };
-
-    export const toJSON = ({schema, inputData, context}) => {
+    export const toJSON = ({
+        schema,
+        inputData,
+        context
+    }) => {
         return ({
-        // [inputData.variableName]: JSON.stringify(schema[inputData.variableName])
-        initiateDBIterationStep: JSON.stringify(schema.initiateDBIterationStep),
-        isOneByOne: JSON.stringify(schema.isOneByOne),
-        // fields: {}, // ?
-        authToken: JSON.stringify(schema.authToken),
-        endpoint: JSON.stringify(schema.endpoint),
-        uiUrl: JSON.stringify(schema.uiUrl),
-        table: schema.table,
-        query: JSON.stringify(schema.query),
-        limit: schema.limit,
-        skip: schema.skip,
-        sortDirection: JSON.stringify(schema.sortDirection),
-        sortField: schema.sortField,
-        // queryObject: true,
+            initiateDBIterationStep: JSON.stringify(schema.initiateDBIterationStep),
+            isOneByOne: JSON.stringify(schema.isOneByOne),
+            authToken: JSON.stringify(schema.authToken),
+            endpoint: JSON.stringify(schema.endpoint),
+            uiUrl: JSON.stringify(schema.uiUrl),
+            table: schema.table,
+            query: JSON.stringify(schema.query),
+            limit: schema.limit,
+            skip: schema.skip,
+            sortDirection: JSON.stringify(schema.sortDirection),
+            sortField: schema.sortField,
         })
     };
 
     export const validator = (template) => {
         return {
-            // email    : generateValidators(template.validateRequired, {required}),
-            // password : generateValidators(template.validateRequired, {required}),
             table: {
-                required (table, schema) {
+                required(table, schema) {
                     return validators.required && table !== '``';
+                },
+                exists(table, schema) {
+                    return schema.tableExists;
                 }
             },
             limit: {
-                validJs (limit, schema) {
+                validJs(limit, schema) {
                     return validators.jsExpression(limit);
                 }
             },
             skip: {
-                validJs (skip, schema) {
+                validJs(skip, schema) {
                     return validators.jsExpression(skip);
                 }
             },
-             outputExample: {
+            outputExample: {
                 jsCode: code => !code || validators.jsExpression(code)
             },
             conditions: {
                 rulesets: {
                     $each: {
-                        hasNoRepeatitions (ruleset) {
+                        hasNoRepeatitions(ruleset) {
                             if (ruleset.mode === 'code') {
                                 return true;
                             }
-                            
-                            const selectModeRules = _.filter(ruleset.rules, ({mode}) => mode === 'select');
+
+                            const selectModeRules = _.filter(ruleset.rules, ({
+                                mode
+                            }) => mode === 'select');
 
                             return selectModeRules.length === _.chain(selectModeRules)
-                                .groupBy(({field, operation}) => `${field}-${operation}`)
+                                .groupBy(({
+                                    field,
+                                    operation
+                                }) => `${field}-${operation}`)
                                 .keys()
                                 .value()
                                 .length;
                         },
                         rules: {
                             $each: {
-                                opearation (rule) {
+                                operation(rule) {
                                     if (rule.mode === 'code') {
                                         return true;
                                     }
                                     const fieldName = rule.field.slice(1, -1);
                                     const isMergeField = fieldName.includes('this.get');
-                                    const fieldObj = this.schema.tableFields.find(field => field.name === fieldName);
-                                    if (!isMergeField && fieldObj && 
+                                    // const fieldObj = this.tableFields.find(field => field.name === fieldName);
+                                    const fieldObj = this.schema.fields[fieldName];
+                                    if (!isMergeField && fieldObj &&
                                         (
-                                            (fieldObj.DataType === 'Number' && ['contains', 'not contain', 'begins with'].includes(rule.operation)) ||
-                                            (fieldObj.DataType === 'Boolean' && !['$eq', '$ne'].includes(rule.operation))
+                                            // (fieldObj.type === 'Number' && ['contains', 'not contain', 'begins with'].includes(rule.operation)) ||
+                                            (fieldObj.type === 'boolean' && !['=', '!='].includes(rule.operation))
                                         )
                                     ) {
                                         return false;
@@ -633,19 +699,273 @@
     };
 
     export const meta = {
-        name    : 'initiate-db-iteration',
-        type    : 'onereach-studio-form-editor',
-        version : '1.0'
+        name: 'initiate-db-iteration',
+        type: 'onereach-studio-form-editor',
+        version: '1.0'
     };
 </script>
 
 <style scoped lang="scss" rel="stylesheet/scss">
     @import '../scss/colors.scss';
-    @import '../scss/main.scss';
+    
 </style>
 
 
 <style lang="scss" rel="stylesheet/scss">
     @import '../scss/colors.scss';
 
+    // @import '../scss/main.scss';
+    .external-component-wrap {
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .w-64 {
+            width: 64px;
+        }
+
+        .width-100 {
+            width: 100%;
+
+            .ui-select__content {
+                width: 100%;
+            }
+        }
+
+        .width-0 {
+            width: 0;
+
+            .ui-select__content {
+                width: 0;
+            }
+        }
+
+        .relative-position {
+            position: relative;
+        }
+
+        .placeholder {
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .placeholder-text {
+            color: hsla(215, 6%, 59%, .65);
+            text-align: center;
+        }
+
+        .error {
+            color: #f95d5d;
+            line-height: 1.2;
+            font-size: 12px;
+            padding-top: 4px;
+        }
+
+        .no-margin {
+            margin: 0;
+        }
+
+        .m-r-m {
+            margin-right: 14px;
+        }
+
+        .m-r-s {
+            margin-right: 8px;
+        }
+
+        .m-b-6 {
+            margin-bottom: 6px;
+        }
+
+        .m-t-15 {
+            margin-top: 15px;
+        }
+
+        .grey {
+            color: #a7aaaf;
+            fill: #a7aaaf;
+
+            .ui-icon {
+                color: #a7aaaf;
+            }
+        }
+
+        .justify-label {
+            .ui-select__label-text {
+                display: flex;
+                justify-content: space-between;
+            }
+        }
+
+        .low-text {
+            font-size: 12px;
+        }
+
+        .display-flex {
+            display: flex;
+        }
+
+        .display-none {
+            display: none;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .flex-2 {
+            flex: 2;
+        }
+
+        .align-items-end {
+            align-items: flex-end;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+
+        .ui-icon-button.medium {
+            .ui-icon {
+                font-size: 18px;
+            }
+        }
+
+        .link-button {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: #64b2da;
+            font-size: 14px;
+            margin-top: 15px;
+
+            &:hover {
+                color: #4b99c1;
+            }
+
+            .ui-icon {
+                font-size: 16px;
+            }
+
+            &.no-margin {
+                margin: 0;
+            }
+        }
+
+        .popover-trigger {
+            width: 18px;
+            display: flex;
+            align-items: center;
+
+            &.code-mode {
+                margin-top: 38px;
+            }
+        }
+
+        .table-fields {
+            margin: 0 auto 14px;
+            width: 360px;
+        }
+
+        .table-row {
+            display: flex;
+            justify-content: space-between;
+
+            &--head {
+                font-weight: bold;
+
+                .table-row__name {
+                    color: inherit;
+                }
+            }
+
+            // &__type {
+            //     color: #B1B1B1;
+            // }
+
+            // &__name,
+            // &__type {
+            //     width: 40%;
+            // }
+        }
+
+        .svg-icon-holder {
+            display: none;
+        }
+
+        .svg-icon-position {
+            margin-top: 4px;
+
+            use {
+                fill: #a1a6aa;
+            }
+
+            &:hover {
+                use {
+                    /* fill: #64b2da; */
+                }
+            }
+        }
+
+        .or-select-expression {
+            .editable {
+                min-height: 30px;
+            }
+
+            .placeholder {
+                font-size: 14px !important;
+            }
+        }
+
+        .ui-select__display-value {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+
+            &>div {
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: inherit;
+            }
+        }
+
+        .ui-select-option__basic {
+            white-space: normal;
+        }
+
+        .back-to-default-btn {
+            position: absolute;
+            right: 45px;
+            top: 7px;
+            margin-top: 0;
+            visibility: hidden;
+        }
+
+        .output-wrapper {
+            &:hover {
+                .back-to-default-btn {
+                    visibility: visible;
+                }
+            }
+        }
+
+        .sort-select.ui-select .ui-select__content .ui-select__label .ui-select__display {
+            height: 38px;
+        }
+
+        .sort-icon {
+            margin-top: 36px;
+        }
+
+        .ui-tabs .ui-tabs__header ul.ui-tabs__header-items {
+            padding: 0;
+
+            .ui-tab-header-item {
+                text-transform: none;
+                width: 50%;
+            }
+        }
+    }
 </style>

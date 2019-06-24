@@ -1,6 +1,6 @@
 <template>
     <div class="example-input-component-wrapper">
-        <!-- <div class="wrapper" @click="$refs.configModal.open()">
+        <div class="wrapper" @click="$refs.configModal.open()">
             <editor :template="input.data"
                     :schema="defaultStep.data"
                     :step="defaultStep"
@@ -9,7 +9,7 @@
             </editor>
         </div>
 
-        <or-modal ref="configModal" :remove-close-button="true"
+        <!-- <or-modal ref="configModal" :remove-close-button="true"
                   title="Configure component"
                   class="input-message-settings"
                   :contain-focus="false">

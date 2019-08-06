@@ -178,7 +178,7 @@
         created() {},
         mounted() {
             // console.log('this', this);
-            // console.log('NEW!!!!')
+            console.log('NEW!!!!')
             const currentEndpoint = `https://tablesapi-staging.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
             if (this.schema.endpoint !== currentEndpoint) {
                 this.schema.endpoint = currentEndpoint;

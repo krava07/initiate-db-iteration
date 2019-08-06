@@ -177,7 +177,7 @@
 
         created() {},
         mounted() {
-            // console.log('this', this);
+            console.log('this', this);
             console.log('NEW!!!!')
             const currentEndpoint = `https://tablesapi-staging.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
             if (this.schema.endpoint !== currentEndpoint) {
@@ -196,7 +196,10 @@
             if (this.$store && this.$store.state && this.$store.state.auth && this.$store.state.auth.token) {
                 this.headers.Authorization = this.$settings.token;
                 this.schema.authToken = this.$settings.token;
-                this.getTables().then(this.getTableFields);
+                
+                this.$nextTick(() => {
+                    this.getTables().then(this.getTableFields);
+                });
             } else {
                 console.error('Cannot find authorization token', this);
             }
@@ -280,7 +283,9 @@
                 }
             },
             isMergeField() {
-                return this.selectedTableModel.includes('this.get');
+                // return this.selectedTableModel.includes('this.get');
+                console.log('this.selectedTableModel', this.selectedTableModel);
+                return /^(`\$\{this.get\('.*'\)\}`)$/.test(this.selectedTableModel);
             },
 
             isOneByOne: {

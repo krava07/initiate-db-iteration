@@ -8,7 +8,7 @@
             v-model="selectedTableModel"
             :keys="tableSelectKeys"
             :options.sync="availableTables"
-            :steps="steps" :step-id="stepId"
+            :steps="steps" :step-id="stepId" :merge-fields="mergeFields"
             hasSearch extendableOptions
             class="justify-label width-100"
             :disabled="readonly"
@@ -61,6 +61,7 @@
                 v-model="conditions"
                 :steps="steps"
                 :step-id="stepId"
+                :merge-fields="mergeFields"
                 :fields="fields"
                 :query.sync="query"
                 :readonly="readonly"
@@ -86,6 +87,7 @@
                     class="no-margin m-r-m flex-1 width-0"
                     :steps="steps"
                     :step-id="stepId"
+                    :merge-fields="mergeFields"
                     :readonly="readonly"
                     :invalid="$v.schema.limit.$error"
                     error="The Limit must be a valid Javascript code."
@@ -103,6 +105,7 @@
                         :disabled="readonly"
                         :steps="steps"
                         :step-id="stepId"
+                        :merge-fields="mergeFields"
                     ></or-select-expression>
                     <or-icon-button
                         :icon="sortDirection === '+' ? 'arrow_upward' : 'arrow_downward'"
@@ -145,7 +148,7 @@
 
     export default {
         name: 'editor',
-        props: ['template', 'schema', 'step', 'stepId', 'steps', 'readonly', 'isNew'],
+        props: ['template', 'schema', 'step', 'stepId', 'steps', 'mergeFields', 'readonly', 'isNew'],
         components: {
             'condition-builder': ConditionBuilder
         },
@@ -176,7 +179,7 @@
         mounted() {
             // console.log('this', this);
             // console.log('NEW!!!!')
-            const currentEndpoint = `https://tablesapi-qa.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
+            const currentEndpoint = `https://tablesapi-staging.onereach.ai/${this.$flow.accountId}/${this.$flow.userId}/`;
             if (this.schema.endpoint !== currentEndpoint) {
                 this.schema.endpoint = currentEndpoint;
             }
